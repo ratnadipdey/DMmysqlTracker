@@ -772,7 +772,23 @@ DELIMITER ;
 
 
 
+use dmsi;
+create table DMSWITCHES (
+	 
+    `SWITCHNAME` varchar(50),
+	`ISENABLED` SMALLINT,
+	primary key (`SWITCHNAME`)
+);
 
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('StopSequenceValidationEXPDATL',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('StopSequenceValidation-EXPD-ATL',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('AttachmentShipmentIntegration',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('StopSequenceValidation-OOOA',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('StopSequenceValidation-KHNN',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('mq',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('StopSequenceValidation-EXPD-ADL',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('activemq',1);
+Insert into DMSWITCHES (SWITCHNAME,ISENABLED) values ('kafka',1);
 
 
 
