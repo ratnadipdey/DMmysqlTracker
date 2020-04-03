@@ -6,6 +6,32 @@ ADD TARGETMEDIALINK              VARCHAR(4000) ,
 ADD TARGETMEDIAFILENAME          VARCHAR(500);
 
 -- 503
+DELIMITER $$
+create function OFFER_CATEGORY (wo_number bigint)
+returns VARCHAR(80)
+READS SQL DATA
+BEGIN
+  declare category VARCHAR(80);
+  select OFFERCATEGORY into category from offer where (workorderid=wo_number or secondworkorderid=wo_number) and status= 'New';
+    return category;    
+END $$
+DELIMITER ;
+
+DELIMITER $$
+create function OFFER_CHECK (wo_number bigint)
+returns VARCHAR(80)
+READS SQL DATA
+BEGIN
+  declare cnt bigint;
+  select count(*) into cnt from offer where (workorderid=wo_number or secondworkorderid=wo_number) and status= 'New';
+    if cnt=0 then
+      RETURN 'No';
+    else 
+      RETURN 'Yes';
+    end if;  
+END $$
+DELIMITER ;
+
 CREATE OR REPLACE VIEW `VWADVANCEDFILTER` (`WORKORDERID`, `WORKORDERNUMBER`, `ORIGINATOR`, `RECEIVER`, `ORIGINATORNAME`, `RECEIVERNAME`, `BILLOFLADING`, `BOOKINGNUMBER`, `CATEGORY`, `CATEGORYTYPE`, `STATUS`, `WORKORDERDATE`, `DATECREATED`, `EXPORTCUTOFFDATE`, `SOURCE`, `VESSEL`, `VOYAGE`, `CUTTOFFDATE`, `PORTOFLOADING`, `PORTOFDISCHARGE`, `ORIGINNAME`, `ORIGINCITY`, `DESTINATIONNAME`, `DESTINATIONCITY`, `EQUIPMENTNUMBER`, `LASTFREEDAY`, `RESPONDBYDATE`, `CREATEDBY`, `ASSIGNEDBY`, `EQUIPMENTTYPECODE`, `ORIGINATORID`, `ETA`, `CATEGORYTRIP`, `OFFERPENDING`, `OFFERCATEGORY`, `ISATTACHMENT`, `CARRIERCODE`, `ORIGINZIP`, `DESTINATIONZIP`, `EQUIPMENTCLASS`, `RECEIVERID`, `SHIPMENTREFERENCENUMBER`) AS 
   SELECT wo.workorderid workorderid,
 wo.workordernumber workordernumber,
@@ -50,19 +76,13 @@ wol.EQUIPMENTCLASS EQUIPMENTCLASS,
 wo.RECEIVERID RECEIVERID,
 wo.SHIPMENTREFERENCENUMBER SHIPMENTREFERENCENUMBER
 FROM
-workorder wo,
-workorderlookup wol,
-status st,
-categorytype catt,
-CATEGORY cat
-	left join partnership p on wo.originatorid = p.organization_dbid
-	and wo.receiverid = p.organization_partner_dbid
-    left join categorytrip catp on cat.TRIP = catp.ID
-WHERE wo.workorderid = wol.workorderid
-AND
-wo.statusid = st.statusid
-AND cat.ID = wo.categoryid
-AND cat.TYPE = catt.ID
+	workorder wo
+left join workorderlookup wol on wo.workorderid = wol.workorderid
+left join status st on wo.statusid = st.statusid
+left join CATEGORY cat on cat.ID = wo.categoryid
+left join categorytype catt on cat.TYPE = catt.ID
+left join partnership p on wo.ORIGINATORID = p.organization_dbid and wo.RECEIVERID = p.organization_partner_dbid
+left join categorytrip catp on cat.TRIP = catp.ID
 ORDER BY wo.workordernumber;
 
 -- 505
@@ -79,7 +99,7 @@ drop procedure if exists proc_upd_wolkup1;
 DELIMITER $$
 create PROCEDURE  proc_upd_wolkup1()  
 	BEGIN 
-		DECLARE mWorkOrderId int(10);
+		DECLARE mWorkOrderId bigint;
 		declare mComments varchar(4000);
 		DECLARE V_FINAL_OUTPUT VARCHAR(40);
 		DECLARE WORKORDERLKUP_UPD_CURSOR CURSOR FOR 
@@ -110,7 +130,7 @@ delimiter $$
 create PROCEDURE proc_upd_wolkup2()
 	begin
 		declare mEmptyreleasenumber varchar(50);
-        declare mWorkorderid int(10);
+        declare mWorkorderid bigint;
 		declare WORKORDERLKUP_UPD_CURSOR cursor for
 			select e1.workorderid, e1.emptyreleasenumber from equipmentonworkorder e1
             where e1.lastmodified = (
@@ -180,7 +200,7 @@ Insert into AMENDWORKORDERSTATEDECIDER (ELEMENT_NAME,UNASSIGNED,ASSIGNED,ACCEPTE
 Insert into AMENDWORKORDERSTATEDECIDER (ELEMENT_NAME,UNASSIGNED,ASSIGNED,ACCEPTED,REJECTED,CANCELLED,AMEND_BY_O,AMEND_BY_R,ACTIVE,COMPLETED,SOURCE_TYPE) values ('workorderDTO.equipmentWorkOrderDTO.reefertempunit','NA','O','O','NA','NA','O','NA','O','O',null);
 
 -- 520
-drop trigger if exists AFTR_EQUIPMENTONWO_INS_UPD;
+drop trigger if exists ACTIVITYONWO_AFTER_INSERT;
 DELIMITER $$
 create TRIGGER ACTIVITYONWO_AFTER_INSERT
 	after insert
@@ -522,7 +542,7 @@ Insert into ATTACHMENTDOCTYPE (ATTACHMENTDOCTYPEID,ATTACHMENTDOCTYPENAME,ATTACHM
 -- 600
 drop table if exists MEDIATION_ROUTING;
 create table MEDIATION_ROUTING (
-	ID int(10) auto_increment, 
+	ID bigint auto_increment, 
     `KEY` varchar(512),
 	VALUE varchar(3092),
 	primary key (`ID`)
@@ -539,47 +559,13 @@ insert into MEDIATION_ROUTING(`KEY`,VALUE) values('shipmentEventForwardToWMTopic
 -- 605
 ALTER TABLE shipmentevents ADD eventcomments VARCHAR(4000);
 
--- 606
-CREATE OR REPLACE VIEW `VW_WO_SHIPMENTEVENTS` (`TABLENAME`, `PRIMARYKEY`, `WORKORDERID`, `WORKORDERNUMBER`, `EVENTCODE`, `EVENTNAME`, `EVENTTIME`, `PUBLISHERID`, `PUBLISHERCODE`, `ORIGINATORID`, `ORIGINATORCODE`, `REPORTSOURCE`, `REPORTEDBY`, `CREATEDATE`, `EVENTCOMMENTS`) AS 
-
-    select 'shipmentevents' as tablename, se.shipmenteventid as primarykey,
-    w.workorderid as workorderid, w.workordernumber as workordernumber,
-    se.eventcode as eventcode, se.eventname as eventname,
-    se.eventtime as eventtime, null as publisherid ,se.publishercode as publishercode,
-    se.originatorid as originatorid, se.originatorcode as originatorcode,
-    se.reportsource as reportsource, se.reportedby as reportedby,
-    se.createdate as createdate, se.eventcomments as eventcomments
-    from shipmentevents se, workorder w
-    where se.workordernumber = w.workordernumber
-    and se.originatorid = w.originatorid
-    and (se.publisherid = w.receiverid or se.publisherid=w.originatorid)
-    union
-    select 'appointments', ap.appointmentid,
-    w.workorderid, w.workordernumber,
-    'ACTUAL', s.stoptype,
-    ap.actualtime, w.RECEIVERID, (select code from organization  where dbid = w.RECEIVERID ),
-    w.originatorid, (select code from organization where dbid = w.originatorid ),
-    case (select application_code from userprofile up
-    where up.USER_DBID in (select dbid from users where username = ap.lastmodifiedby) limit 1)
-    WHEN 'DMS' THEN 'WebClient' WHEN 'DMM' THEN 'Mobile' ELSE 'EDI' END, ap.lastmodifiedby,
-    ap.dateactualentered, '  '
-    from workorder w, stop s, appointment ap
-    where w.workorderid = s.workorderid
-    and s.stopid = ap.stopid
-    and ap.actualtime is not null;
-
 -- 607
-CREATE OR REPLACE VIEW `VW_SEARCH_SHIPMENTEVENTS` (`SHIPMENTEVENTID`, `PUBLISHERCODE`, `ORIGINATORID`, `ORIGINATORCODE`, `ORIGINATORPARENTID`, `ORIGINATORPARENTCODE`, `ORIGINATORNAME`, `EVENTCODE`, `EVENTNAME`, `HOUSEBILL`, `MASTERBILL`, `WORKORDERNUMBER`, `UNITID`, `LONGITUDE`, `LATITUDE`, `LOCATION`, `EVENTTIME`, `REPORTEDBY`, `REPORTSOURCE`, `NOTES`, `CREATEDBY`, `CREATEDATE`, `PUBLISHERID`, `PUBLISHERPARENTID`, `PUBLISHERPARENTCODE`, `ONHAND`, `EQUIPMENTTYPECODE`, `STATUS`, `WORKORDERID`, `RECEIVERNAME`, `EVENTCOMMENTS`) AS 
-  (
-SELECT s.`SHIPMENTEVENTID`,s.`PUBLISHERCODE`,s.`ORIGINATORID`,s.`ORIGINATORCODE`,s.`ORIGINATORPARENTID`,s.`ORIGINATORPARENTCODE`,s.`ORIGINATORNAME`,s.`EVENTCODE`,s.`EVENTNAME`,s.`HOUSEBILL`,s.`MASTERBILL`,s.`WORKORDERNUMBER`,s.`UNITID`,s.`LONGITUDE`,s.`LATITUDE`,s.`LOCATION`,s.`EVENTTIME`,s.`REPORTEDBY`,s.`REPORTSOURCE`,s.`NOTES`,s.`CREATEDBY`,s.`CREATEDATE`,s.`PUBLISHERID`,s.`PUBLISHERPARENTID`,s.`PUBLISHERPARENTCODE`,s.`ONHAND`,s.`EQUIPMENTTYPECODE`, st.description as status, s.`WORKORDERID`, w.receivername, s.`EVENTCOMMENTS`
-FROM shipmentevents s
-LEFT OUTER JOIN workorder w
-ON s.workordernumber = w.workordernumber and s.originatorid = w.originatorid and s.workorderid = w.workorderid
-left outer join status st on st.statusid = w.statusid);
+alter table shipmentevents add EQUIPMENTTYPECODE VARCHAR(50);
+alter table shipmentevents add WORKORDERID bigint;
 
 -- 608
 ALTER TABLE eventexception ADD exceptionreason VARCHAR(200);
-ALTER TABLE appointment ADD (exceptionreason VARCHAR(200));
+ALTER TABLE appointment ADD exceptionreason VARCHAR(200);
 ALTER TABLE workorderlookup ADD exceptionreason VARCHAR(200);
 ALTER TABLE shipmentevents ADD exceptionreason VARCHAR(200);
 
@@ -651,29 +637,19 @@ CREATE OR REPLACE VIEW `VWEQUIPMENTADVANCEDFILTER` (`APPOINTMENTID`, `WORKORDERI
   EE.DAMAGE DAMAGE,
   EE.COMMENTS EVENTEXCEPTIONCOMMENTS,
   APP.EXCEPTIONREASON
-FROM WORKORDER WO,
-  EQUIPMENTONWORKORDER EWO,
-  STOP STP,
-  APPOINTMENT APP,
-  STATUS ST ,
-  CATEGORYTYPE CATT,
-  CATEGORY CAT,
-  (SELECT DISTINCT EQUIPMENTWORKORDERID,
-    ISINVOICED
+FROM WORKORDER WO
+  LEFT JOIN PARTNERSHIP p on WO.ORIGINATORID = p.organization_dbid AND WO.RECEIVERID = p.organization_partner_dbid
+  left join EQUIPMENTONWORKORDER EWO on WO.WORKORDERID = EWO.WORKORDERID
+ LEFT JOIN (SELECT DISTINCT EQUIPMENTWORKORDERID, ISINVOICED
   FROM CHARGE
   WHERE ISINVOICED = 1
-  ) EQV
-  LEFT JOIN PARTNERSHIP p on WO.ORIGINATORID = p.organization_dbid AND WO.RECEIVERID = p.organization_partner_dbid
- LEFT JOIN EQV on EWO.EQUIPMENTONWORKORDERID = EQV.equipmentworkorderid
+  ) EQV on EWO.EQUIPMENTONWORKORDERID = EQV.equipmentworkorderid
+  left join STOP STP on WO.WORKORDERID = STP.WORKORDERID
+  left join APPOINTMENT APP on EWO.EQUIPMENTONWORKORDERID = APP.EQUIPMENTONWORKORDERID AND STP.STOPID = APP.STOPID
+  left join STATUS ST on WO.STATUSID = ST.STATUSID AND ST.STATUSID IN (3, 5, 6, 9, 10)
+  left join CATEGORY CAT on CAT.ID                     = WO.CATEGORYID
+  left join CATEGORYTYPE CATT on CAT.TYPE                  = CATT.ID
  LEFT JOIN EVENTEXCEPTION EE on APP.APPOINTMENTID = EE.APPOINTMENTID
-WHERE WO.WORKORDERID           = EWO.WORKORDERID
-AND WO.WORKORDERID             = STP.WORKORDERID
-AND WO.STATUSID                = ST.STATUSID
-AND ST.STATUSID               IN (3, 5, 6, 9, 10)
-AND CAT.ID                     = WO.CATEGORYID
-AND CAT.TYPE                   = CATT.ID
-AND STP.STOPID                 = APP.STOPID
-AND EWO.EQUIPMENTONWORKORDERID = APP.EQUIPMENTONWORKORDERID
 ORDER BY WO.WORKORDERNUMBER;
 
 -- 610
@@ -706,6 +682,7 @@ CREATE OR REPLACE VIEW `VW_WO_SHIPMENTEVENTS` (`TABLENAME`, `PRIMARYKEY`, `WORKO
     and ap.actualtime is not null;
 
 -- 611
+
 CREATE OR REPLACE VIEW `VW_SEARCH_SHIPMENTEVENTS` (`SHIPMENTEVENTID`, `PUBLISHERCODE`, `ORIGINATORID`, `ORIGINATORCODE`, `ORIGINATORPARENTID`, `ORIGINATORPARENTCODE`, `ORIGINATORNAME`, `EVENTCODE`, `EVENTNAME`, `HOUSEBILL`, `MASTERBILL`, `WORKORDERNUMBER`, `UNITID`, `LONGITUDE`, `LATITUDE`, `LOCATION`, `EVENTTIME`, `REPORTEDBY`, `REPORTSOURCE`, `NOTES`, `CREATEDBY`, `CREATEDATE`, `PUBLISHERID`, `PUBLISHERPARENTID`, `PUBLISHERPARENTCODE`, `ONHAND`, `EQUIPMENTTYPECODE`, `STATUS`, `WORKORDERID`, `RECEIVERNAME`, `EVENTCOMMENTS`, `EXCEPTIONREASON`) AS 
   (
 SELECT s.`SHIPMENTEVENTID`,s.`PUBLISHERCODE`,s.`ORIGINATORID`,s.`ORIGINATORCODE`,s.`ORIGINATORPARENTID`,s.`ORIGINATORPARENTCODE`,s.`ORIGINATORNAME`,s.`EVENTCODE`,s.`EVENTNAME`,s.`HOUSEBILL`,s.`MASTERBILL`,s.`WORKORDERNUMBER`,s.`UNITID`,s.`LONGITUDE`,s.`LATITUDE`,s.`LOCATION`,s.`EVENTTIME`,s.`REPORTEDBY`,s.`REPORTSOURCE`,s.`NOTES`,s.`CREATEDBY`,s.`CREATEDATE`,s.`PUBLISHERID`,s.`PUBLISHERPARENTID`,s.`PUBLISHERPARENTCODE`,s.`ONHAND`,s.`EQUIPMENTTYPECODE`, st.description as status, s.`WORKORDERID`, w.receivername, s.`EVENTCOMMENTS`, s.`EXCEPTIONREASON`
@@ -722,9 +699,9 @@ drop procedure if exists UPDATE_HASPOD_WRKODER;
 delimiter $$
 create PROCEDURE UPDATE_HASPOD_WRKODER() 
 	BEGIN
-		DECLARE mWorkOrderId int(10);
+		DECLARE mWorkOrderId bigint;
         declare done boolean default false;
-		DECLARE V_TOTAL_ATTACHMENT_RCRDS int(10);
+		DECLARE V_TOTAL_ATTACHMENT_RCRDS bigint;
 		declare WORKORDERLOOKUP_DTLS_CURSOR Cursor for
 			SELECT DISTINCT WORKORDERID AS WORKORDERID       
 			 FROM WORKORDERLOOKUP ;
@@ -768,25 +745,36 @@ create TRIGGER UPDWLUP_ATTACHMNT_AFTR_INS_UPD
 		BEGIN
 			-- DECLARE pragma autonomous_transaction;
 			DECLARE E_MSG VARCHAR(400);
+            DECLARE V_COUNT DOUBLE;
             DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = SQLERRM;
-			DECLARE V_COUNT DOUBLE;
 
             SELECT COUNT(*) INTO V_COUNT FROM ATTACHMENT where workorderid = new.workorderid and documenttype = '1';
           -- -  INSERT INTO TESTDMQA (COLUMN1) VALUES('COUNT' || V_COUNT);
 			IF (NEW.DOCUMENTTYPE = '1' AND NEW.DOCUMENTTYPE IS NOT NULL) THEN
 				UPDATE WORKORDERLOOKUP SET HASPODATTACHMENT = 'Yes' where workorderid = new.workorderid;
-				COMMIT;				
 			ELSEIF (NEW.DOCUMENTTYPE <> '1' AND NEW.DOCUMENTTYPE IS NOT NULL) THEN
 				IF(V_COUNT > 0) THEN
 					UPDATE WORKORDERLOOKUP SET HASPODATTACHMENT = 'Yes' where workorderid = new.workorderid;   
-					COMMIT;
 				ELSE
-					UPDATE WORKORDERLOOKUP SET HASPODATTACHMENT = 'No' where workorderid = new.workorderid;                    
-					COMMIT;
+					UPDATE WORKORDERLOOKUP SET HASPODATTACHMENT = 'No' where workorderid = new.workorderid;
 				END IF;				                    
 			END IF;           
 		END $$
 DELIMITER ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -802,6 +790,10 @@ alter table attachment drop column MEDIALINK;
 alter table attachment drop column MEDIAFILENAME;
 alter table attachment drop column TARGETMEDIALINK;
 alter table attachment drop column TARGETMEDIAFILENAME;
+
+-- 503
+drop function if exists OFFER_CATEGORY;
+drop function if exists OFFER_CHECK;
 
 -- 505
 ALTER TABLE equipmentonworkorder DROP REEFERTEMP;
@@ -881,30 +873,30 @@ CREATE OR REPLACE VIEW `VWEQUIPMENTADVANCEDFILTER` (`APPOINTMENTID`, `WORKORDERI
   EE.DAMAGE DAMAGE,
   EE.COMMENTS EVENTEXCEPTIONCOMMENTS,
   APP.EXCEPTIONREASON
-FROM WORKORDER WO,
-  EQUIPMENTONWORKORDER EWO,
-  STOP STP,
-  APPOINTMENT APP,
-  STATUS ST ,
-  CATEGORYTYPE CATT,
-  CATEGORY CAT,
-  (SELECT DISTINCT EQUIPMENTWORKORDERID,
-    ISINVOICED
+FROM WORKORDER WO
+  LEFT JOIN PARTNERSHIP p on WO.ORIGINATORID = p.organization_dbid AND WO.RECEIVERID = p.organization_partner_dbid
+  left join EQUIPMENTONWORKORDER EWO on WO.WORKORDERID = EWO.WORKORDERID
+ LEFT JOIN (SELECT DISTINCT EQUIPMENTWORKORDERID, ISINVOICED
   FROM CHARGE
   WHERE ISINVOICED = 1
-  ) EQV
- LEFT JOIN PARTNERSHIP p on WO.ORIGINATORID = p.organization_dbid AND WO.RECEIVERID = p.organization_partner_dbid
- LEFT JOIN EQV on EWO.EQUIPMENTONWORKORDERID = EQV.equipmentworkorderid
+  ) EQV on EWO.EQUIPMENTONWORKORDERID = EQV.equipmentworkorderid
+  left join STOP STP on WO.WORKORDERID = STP.WORKORDERID
+  left join APPOINTMENT APP on EWO.EQUIPMENTONWORKORDERID = APP.EQUIPMENTONWORKORDERID AND STP.STOPID = APP.STOPID
+  left join STATUS ST on WO.STATUSID = ST.STATUSID AND ST.STATUSID IN (3, 5, 6, 9, 10)
+  left join CATEGORY CAT on CAT.ID                     = WO.CATEGORYID
+  left join CATEGORYTYPE CATT on CAT.TYPE                  = CATT.ID
  LEFT JOIN EVENTEXCEPTION EE on APP.APPOINTMENTID = EE.APPOINTMENTID
-WHERE WO.WORKORDERID           = EWO.WORKORDERID
-AND WO.WORKORDERID             = STP.WORKORDERID
-AND WO.STATUSID                = ST.STATUSID
-AND ST.STATUSID               IN (3, 5, 6, 9, 10)
-AND CAT.ID                     = WO.CATEGORYID
-AND CAT.TYPE                   = CATT.ID
-AND STP.STOPID                 = APP.STOPID
-AND EWO.EQUIPMENTONWORKORDERID = APP.EQUIPMENTONWORKORDERID
 ORDER BY WO.WORKORDERNUMBER;
+
+-- 519
+delete from AMENDWORKORDERSTATEDECIDER where ELEMENT_NAME = 'workorderDTO.equipmentWorkOrderDTO.reefertemp';
+delete from AMENDWORKORDERSTATEDECIDER where ELEMENT_NAME = 'workorderDTO.equipmentWorkOrderDTO.reefertempunit';
+
+-- 521
+delete from ATTACHMENTDOCTYPE where ATTACHMENTDOCTYPEID = 5;
+delete from ATTACHMENTDOCTYPE where ATTACHMENTDOCTYPEID = 6;
+delete from ATTACHMENTDOCTYPE where ATTACHMENTDOCTYPEID = 7;
+delete from ATTACHMENTDOCTYPE where ATTACHMENTDOCTYPEID = 8;
 
 -- 600
 drop table if exists MEDIATION_ROUTING;
@@ -942,57 +934,14 @@ CREATE OR REPLACE VIEW `VW_WO_SHIPMENTEVENTS` (`TABLENAME`, `PRIMARYKEY`, `WORKO
     and ap.actualtime is not null;
     
 -- 607
-CREATE OR REPLACE VIEW `DMQA`.`VW_SEARCH_SHIPMENTEVENTS` (`SHIPMENTEVENTID`, `PUBLISHERCODE`, `ORIGINATORID`, `ORIGINATORCODE`, `ORIGINATORPARENTID`, `ORIGINATORPARENTCODE`, `ORIGINATORNAME`, `EVENTCODE`, `EVENTNAME`, `HOUSEBILL`, `MASTERBILL`, `WORKORDERNUMBER`, `UNITID`, `LONGITUDE`, `LATITUDE`, `LOCATION`, `EVENTTIME`, `REPORTEDBY`, `REPORTSOURCE`, `NOTES`, `CREATEDBY`, `CREATEDATE`, `PUBLISHERID`, `PUBLISHERPARENTID`, `PUBLISHERPARENTCODE`, `ONHAND`, `EQUIPMENTTYPECODE`, `STATUS`, `WORKORDERID`, `RECEIVERNAME`) AS 
-  (
-SELECT s.`SHIPMENTEVENTID`,s.`PUBLISHERCODE`,s.`ORIGINATORID`,s.`ORIGINATORCODE`,s.`ORIGINATORPARENTID`,s.`ORIGINATORPARENTCODE`,s.`ORIGINATORNAME`,s.`EVENTCODE`,s.`EVENTNAME`,s.`HOUSEBILL`,s.`MASTERBILL`,s.`WORKORDERNUMBER`,s.`UNITID`,s.`LONGITUDE`,s.`LATITUDE`,s.`LOCATION`,s.`EVENTTIME`,s.`REPORTEDBY`,s.`REPORTSOURCE`,s.`NOTES`,s.`CREATEDBY`,s.`CREATEDATE`,s.`PUBLISHERID`,s.`PUBLISHERPARENTID`,s.`PUBLISHERPARENTCODE`,s.`ONHAND`,s.`EQUIPMENTTYPECODE`, st.description as status, s.`WORKORDERID`, w.receivername
-FROM shipmentevents s
-LEFT OUTER JOIN workorder w
-ON s.workordernumber = w.workordernumber and s.originatorid = w.originatorid and s.workorderid = w.workorderid
-left outer join status st on st.statusid = w.statusid);
+alter table shipmentevents drop EQUIPMENTTYPECODE;
+alter table shipmentevents drop WORKORDERID;
 
 -- 608
 ALTER TABLE eventexception DROP exceptionreason ;
 ALTER TABLE appointment DROP exceptionreason ;
 ALTER TABLE workorderlookup DROP exceptionreason ;
 ALTER TABLE shipmentevents DROP exceptionreason ;
-
--- 610
-CREATE OR REPLACE VIEW `VW_WO_SHIPMENTEVENTS` (`TABLENAME`, `PRIMARYKEY`, `WORKORDERID`, `WORKORDERNUMBER`, `EVENTCODE`, `EVENTNAME`, `EVENTTIME`, `PUBLISHERID`, `PUBLISHERCODE`, `ORIGINATORID`, `ORIGINATORCODE`, `REPORTSOURCE`, `REPORTEDBY`, `CREATEDATE`, `EVENTCOMMENTS`) AS 
-
-    select 'shipmentevents' as tablename, se.shipmenteventid as primarykey,
-    w.workorderid as workorderid, w.workordernumber as workordernumber,
-    se.eventcode as eventcode, se.eventname as eventname,
-    se.eventtime as eventtime, null as publisherid ,se.publishercode as publishercode,
-    se.originatorid as originatorid, se.originatorcode as originatorcode,
-    se.reportsource as reportsource, se.reportedby as reportedby,
-    se.createdate as createdate, se.eventcomments as eventcomments
-    from shipmentevents se, workorder w
-    where se.workordernumber = w.workordernumber
-    and se.originatorid = w.originatorid
-    and (se.publisherid = w.receiverid or se.publisherid=w.originatorid)
-    union
-    select 'appointments', ap.appointmentid,
-    w.workorderid, w.workordernumber,
-    'ACTUAL', s.stoptype,
-    ap.actualtime, w.RECEIVERID, (select code from organization  where dbid = w.RECEIVERID ),
-    w.originatorid, (select code from organization where dbid = w.originatorid ),
-    case (select application_code from userprofile up
-    where up.USER_DBID in (select dbid from users where username = ap.lastmodifiedby) limit 1)
-    WHEN 'DMS' THEN 'WebClient' WHEN 'DMM' THEN 'Mobile' ELSE 'EDI' END, ap.lastmodifiedby,
-    ap.dateactualentered, '  '
-    from workorder w, stop s, appointment ap
-    where w.workorderid = s.workorderid
-    and s.stopid = ap.stopid
-    and ap.actualtime is not null;
-    
--- 611
-CREATE OR REPLACE VIEW `VW_SEARCH_SHIPMENTEVENTS` (`SHIPMENTEVENTID`, `PUBLISHERCODE`, `ORIGINATORID`, `ORIGINATORCODE`, `ORIGINATORPARENTID`, `ORIGINATORPARENTCODE`, `ORIGINATORNAME`, `EVENTCODE`, `EVENTNAME`, `HOUSEBILL`, `MASTERBILL`, `WORKORDERNUMBER`, `UNITID`, `LONGITUDE`, `LATITUDE`, `LOCATION`, `EVENTTIME`, `REPORTEDBY`, `REPORTSOURCE`, `NOTES`, `CREATEDBY`, `CREATEDATE`, `PUBLISHERID`, `PUBLISHERPARENTID`, `PUBLISHERPARENTCODE`, `ONHAND`, `EQUIPMENTTYPECODE`, `STATUS`, `WORKORDERID`, `RECEIVERNAME`, `EVENTCOMMENTS`) AS 
-  (
-SELECT s.`SHIPMENTEVENTID`,s.`PUBLISHERCODE`,s.`ORIGINATORID`,s.`ORIGINATORCODE`,s.`ORIGINATORPARENTID`,s.`ORIGINATORPARENTCODE`,s.`ORIGINATORNAME`,s.`EVENTCODE`,s.`EVENTNAME`,s.`HOUSEBILL`,s.`MASTERBILL`,s.`WORKORDERNUMBER`,s.`UNITID`,s.`LONGITUDE`,s.`LATITUDE`,s.`LOCATION`,s.`EVENTTIME`,s.`REPORTEDBY`,s.`REPORTSOURCE`,s.`NOTES`,s.`CREATEDBY`,s.`CREATEDATE`,s.`PUBLISHERID`,s.`PUBLISHERPARENTID`,s.`PUBLISHERPARENTCODE`,s.`ONHAND`,s.`EQUIPMENTTYPECODE`, st.description as status, s.`WORKORDERID`, w.receivername, s.`EVENTCOMMENTS`
-FROM shipmentevents s
-LEFT OUTER JOIN workorder w
-ON s.workordernumber = w.workordernumber and s.originatorid = w.originatorid and s.workorderid = w.workorderid
-left outer join status st on st.statusid = w.statusid);
 
 -- 612
 ALTER TABLE workorderlookup drop haspodattachment; 
