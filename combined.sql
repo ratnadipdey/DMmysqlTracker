@@ -165,7 +165,7 @@ create TRIGGER AFTR_EQUIPMENTONWO_INS_UPD
 			DECLARE E_MSG VARCHAR(400);
 			DECLARE V_EMPTYRELEASENUMBER VARCHAR(40);
 			DECLARE V_EQUIPMENTONWOID DOUBLE;
-            DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = SQLERRM;
+            DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = 'SQLERRM';
 
 			SELECT ifnull(min(equipmentonworkorderid),new.equipmentonworkorderid) into V_EQUIPMENTONWOID from equipmentonworkorder where workorderid = new.workorderid;
 			
@@ -185,7 +185,7 @@ create TRIGGER AFTR_COMMENTONWO_INS_UPD
        -- DECLARE pragma autonomous_transaction;
 		DECLARE E_MSG VARCHAR(400);
         DECLARE V_COMMENTID DOUBLE;
-        DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = SQLERRM;		
+        DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = 'SQLERRM';		
 
 		select ifnull(min(commentid),NEW.COMMENTID) into V_COMMENTID FROM commentsonworkorder WHERE workorderid = new.workorderid;
 
@@ -231,7 +231,7 @@ create TRIGGER ACTIVITYONWO_AFTER_INSERT
 			declare WO_ROLLBACK_ACCEPT        tinyint default  19;
 			declare WO_UNCOMMIT_EMPTY_RETURN  tinyint default  20;
             
-            DECLARE EXIT HANDLER FOR SQLEXCEPTION SET e_msg = SQLERRM;
+            DECLARE EXIT HANDLER FOR SQLEXCEPTION SET e_msg = 'SQLERRM';
 
 			SET v_workorderid = new.WORKORDERID; 
 			SET v_event       = new.EVENTID;
@@ -746,7 +746,7 @@ create TRIGGER UPDWLUP_ATTACHMNT_AFTR_INS_UPD
 			-- DECLARE pragma autonomous_transaction;
 			DECLARE E_MSG VARCHAR(400);
             DECLARE V_COUNT DOUBLE;
-            DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = SQLERRM;
+            DECLARE EXIT HANDLER FOR SQLEXCEPTION SET E_MSG = 'SQLERRM';
 
             SELECT COUNT(*) INTO V_COUNT FROM ATTACHMENT where workorderid = new.workorderid and documenttype = '1';
           -- -  INSERT INTO TESTDMQA (COLUMN1) VALUES('COUNT' || V_COUNT);
