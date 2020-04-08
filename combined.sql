@@ -855,6 +855,8 @@ FOR EACH ROW
 
     END $$
 DELIMITER ;
+																
+ALTER TABLE workorder MODIFY workorderdate datetime;															
 
 
 
