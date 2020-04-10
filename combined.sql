@@ -856,7 +856,28 @@ FOR EACH ROW
     END $$
 DELIMITER ;
 																
-ALTER TABLE workorder MODIFY workorderdate datetime;															
+ALTER TABLE workorder MODIFY workorderdate datetime;	
+																
+																
+																
+UPDATE amendworkorderstatedecider 
+SET `UNASSIGNED` = 'O', `REJECTED` = 'O', `CANCELLED` = 'O', `AMEND_BY_O` = 'NA' 
+WHERE (`ELEMENT_NAME` = 'workorderDTO.equipmentWorkOrderDTO.reefertemp');
+
+UPDATE amendworkorderstatedecider 
+SET `UNASSIGNED` = 'O', `REJECTED` = 'O', `CANCELLED` = 'O', `AMEND_BY_O` = 'NA' 
+WHERE (`ELEMENT_NAME` = 'workorderDTO.equipmentWorkOrderDTO.reefertempunit');
+
+
+INSERT INTO updateworkorderstatedecider
+(`ELEMENT_NAME`, `UNASSIGNED`, `ASSIGNED`, `ACCEPTED`, `REJECTED`, `CANCELLED`, `AMEND_BY_O`, `AMEND_BY_R`, `ACTIVE`, `COMPLETED`) 
+VALUES ('workorderDTO.equipmentWorkOrderDTO.reefertemp', 'O', 'O', 'NU', 'NU', 'NU', 'NU', 'NU', 'NU', 'NU');
+
+INSERT INTO updateworkorderstatedecider 
+(`ELEMENT_NAME`, `UNASSIGNED`, `ASSIGNED`, `ACCEPTED`, `REJECTED`, `CANCELLED`, `AMEND_BY_O`, `AMEND_BY_R`, `ACTIVE`, `COMPLETED`)
+ VALUES ('workorderDTO.equipmentWorkOrderDTO.reefertempunit', 'O', 'O', 'NU', 'NU', 'NU', 'NU', 'NU', 'NU', 'NU');
+
+																
 
 
 
