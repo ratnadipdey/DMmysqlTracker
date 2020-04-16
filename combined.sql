@@ -876,6 +876,12 @@ VALUES ('workorderDTO.equipmentWorkOrderDTO.reefertemp', 'O', 'O', 'NU', 'NU', '
 INSERT INTO updateworkorderstatedecider 
 (`ELEMENT_NAME`, `UNASSIGNED`, `ASSIGNED`, `ACCEPTED`, `REJECTED`, `CANCELLED`, `AMEND_BY_O`, `AMEND_BY_R`, `ACTIVE`, `COMPLETED`)
  VALUES ('workorderDTO.equipmentWorkOrderDTO.reefertempunit', 'O', 'O', 'NU', 'NU', 'NU', 'NU', 'NU', 'NU', 'NU');
+																
+
+																
+ALTER TABLE workorder
+ADD COLUMN `ORIGINATORCODE` VARCHAR(50) NULL DEFAULT NULL AFTER `REQUESTEDPICKUPDATE`,
+ADD COLUMN `RECEIVERCODE` VARCHAR(50) NULL DEFAULT NULL AFTER `ORIGINATORCODE`;																
 
 																
 
