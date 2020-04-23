@@ -905,7 +905,9 @@ alter table offer
 add column PARTYCODE varchar(10),
 add column ORIGINATORFACILITYCODE varchar(10);												
 																
-																
+alter table bidder
+add column PARTYCODE varchar(10),
+add column FACILITYCODE varchar(10);												
 																
 																
 
