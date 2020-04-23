@@ -892,10 +892,20 @@ CREATE TABLE `devicetoken` (
 )
 
 alter table commentsonworkorder
-add column PARTYCODE varchar(10) not null
+add column PARTYCODE varchar(10) not null;
 																
+alter table activityonworkorder
+add column ORIGINATORCODE varchar(10), 
+add column RECEIVERCODE varchar(10);
 
-
+alter table workorderrejection
+add column PARTYCODE varchar(10);																
+																
+																
+																
+																
+																
+																
 
 
 
