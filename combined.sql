@@ -901,7 +901,9 @@ add column RECEIVERCODE varchar(10);
 alter table workorderrejection
 add column PARTYCODE varchar(10);																
 																
-																
+alter table offer
+add column PARTYCODE varchar(10),
+add column ORIGINATORFACILITYCODE varchar(10);												
 																
 																
 																
