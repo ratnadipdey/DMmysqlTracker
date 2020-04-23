@@ -891,6 +891,10 @@ CREATE TABLE `devicetoken` (
   PRIMARY KEY (`DbId`)
 )
 
+alter table commentsonworkorder
+add column PARTYCODE varchar(10) not null
+																
+
 
 
 
