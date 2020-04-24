@@ -908,6 +908,17 @@ add column ORIGINATORFACILITYCODE varchar(10);
 alter table bidder
 add column PARTYCODE varchar(10),
 add column FACILITYCODE varchar(10);												
+												
+alter table tariff
+add column RECEIVERPARTYCODE varchar(10),
+add column ORIGINATORPARTYCODE varchar(10);							
+																
+																
+																
+																
+																
+																
+																
 																
 																
 
