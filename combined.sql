@@ -913,9 +913,9 @@ alter table tariff
 add column RECEIVERPARTYCODE varchar(10),
 add column ORIGINATORPARTYCODE varchar(10);							
 																
-																
-																
-																
+																											
+alter table categoryallowinvoice
+add column RECFACILITYCODE varchar(10);											
 																
 																
 																
