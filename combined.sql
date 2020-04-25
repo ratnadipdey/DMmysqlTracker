@@ -912,11 +912,16 @@ add column FACILITYCODE varchar(10);
 alter table tariff
 add column RECEIVERPARTYCODE varchar(10),
 add column ORIGINATORPARTYCODE varchar(10);							
-																
-																											
+																																									
 alter table categoryallowinvoice
 add column RECFACILITYCODE varchar(10);											
 																
+alter table stackmotorcarrier
+add column MOTORCARRIERCODE VARCHAR(10),
+drop primary key,
+add primary key(MOTORCARRIERCODE, MOTORCARRIERID, STACKID);
+															
+
 																
 																
 																
