@@ -925,7 +925,32 @@ alter table category
 add column OFFICECODE VARCHAR(10),
 ADD COLUMN ORIGINATORCODE VARCHAR(10);
 
-
+CREATE OR REPLACE VIEW `vwcategoryfilter` AS
+    SELECT 
+        `a`.`ID` AS `ID`,
+        `a`.`NAME` AS `NAME`,
+        `a`.`ORIGINATORID` AS `ORIGINATORID`,
+        `a`.`ORIGINATORCODE` AS `ORIGINATORCODE`,
+        `a`.`ORIGINATORNAME` AS `ORIGINATORNAME`,
+        `a`.`OFFICEID` AS `OFFICEID`,
+        `a`.`OFFICECODE` AS `OFFICECODE`,
+        `a`.`OFFICENAME` AS `OFFICENAME`,
+        `a`.`DATECREATED` AS `DATECREATED`,
+        `a`.`TYPE` AS `TYPE`,
+        `a`.`TRIP` AS `TRIP`,
+        `a`.`ACTIVE` AS `ACTIVE`,
+        `totalstops`.`NUMBEROFSTOPS` AS `NUMBEROFSTOPS`
+    FROM
+        (((`dmsi`.`category` `a`
+        JOIN (SELECT 
+            COUNT(`dmsi`.`categorydetails`.`CATEGORYID`) AS `NUMBEROFSTOPS`,
+                `dmsi`.`categorydetails`.`CATEGORYID` AS `CATEGORYID`
+        FROM
+            (`dmsi`.`category`
+        JOIN `dmsi`.`categorydetails` ON ((`dmsi`.`category`.`ID` = `dmsi`.`categorydetails`.`CATEGORYID`)))
+        GROUP BY `dmsi`.`categorydetails`.`CATEGORYID`) `totalstops` ON ((`a`.`ID` = `totalstops`.`CATEGORYID`)))
+        JOIN `dmsi`.`categorytype` `c` ON ((`a`.`TYPE` = `c`.`ID`)))
+        JOIN `dmsi`.`categorytrip` `d` ON ((`a`.`TRIP` = `d`.`ID`)));
 
 
 
