@@ -952,6 +952,8 @@ CREATE OR REPLACE VIEW `vwcategoryfilter` AS
         JOIN `dmsi`.`categorytype` `c` ON ((`a`.`TYPE` = `c`.`ID`)))
         JOIN `dmsi`.`categorytrip` `d` ON ((`a`.`TRIP` = `d`.`ID`)));
 
+alter table CATEGORYPARTNERSHIP
+add column OFFICECODE varchar(10);
 
 
 
