@@ -921,6 +921,15 @@ add column MOTORCARRIERCODE VARCHAR(10),
 drop primary key,
 add primary key(MOTORCARRIERCODE, MOTORCARRIERID, STACKID);
 															
+alter table category
+add column OFFICECODE VARCHAR(10),
+ADD COLUMN ORIGINATORCODE VARCHAR(10);
+
+
+
+
+
+
 
 																
 																
