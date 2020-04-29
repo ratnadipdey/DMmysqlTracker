@@ -929,10 +929,8 @@ CREATE OR REPLACE VIEW `vwcategoryfilter` AS
     SELECT 
         `a`.`ID` AS `ID`,
         `a`.`NAME` AS `NAME`,
-        `a`.`ORIGINATORID` AS `ORIGINATORID`,
         `a`.`ORIGINATORCODE` AS `ORIGINATORCODE`,
         `a`.`ORIGINATORNAME` AS `ORIGINATORNAME`,
-        `a`.`OFFICEID` AS `OFFICEID`,
         `a`.`OFFICECODE` AS `OFFICECODE`,
         `a`.`OFFICENAME` AS `OFFICENAME`,
         `a`.`DATECREATED` AS `DATECREATED`,
@@ -953,6 +951,11 @@ CREATE OR REPLACE VIEW `vwcategoryfilter` AS
         JOIN `dmsi`.`categorytrip` `d` ON ((`a`.`TRIP` = `d`.`ID`)));
 
 alter table CATEGORYPARTNERSHIP
+add column OFFICECODE varchar(10);
+
+alter table auto_approval
+add column ORIGINATORCODE varchar(10),
+add column RECEIVERCODE varchar(10),
 add column OFFICECODE varchar(10);
 
 
