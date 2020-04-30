@@ -1009,7 +1009,76 @@ CREATE OR REPLACE VIEW `vwinvoicedcharges` AS
             AND (`ch`.`INVOICEABLEDATE` IS NOT NULL))
     ORDER BY `wo`.`WORKORDERNUMBER`													
 																
-																
+CREATE OR REPLACE VIEW `vwinvoicedetails` AS
+    SELECT 
+        `invoice`.`INVOICEID` AS `INVOICEID`,
+        `invoice`.`INVOICENUMBER` AS `INVOICENUMBER`,
+        `invoice`.`RECEIVERCODE` AS `RECEIVERCODE`,
+        `invoice`.`ORIGINATORCODE` AS `ORIGINATORCODE`,
+        `invoice`.`FROMRECEIVER` AS `FROMRECEIVER`,
+        `invoice`.`BILLTO` AS `BILLTO`,
+        `invoice`.`DATECREATED` AS `DATECREATED`,
+        `invoice`.`DATESEND` AS `DATESEND`,
+        `invoice`.`DATEAPPROVED` AS `DATEAPPROVED`,
+        `invoice`.`DATEREJECTED` AS `DATEREJECTED`,
+        `invoice`.`DATECOMPLETED` AS `DATECOMPLETED`,
+        `invoicestatus`.`DESCRIPTION` AS `STATUS`,
+        `invoicedetails`.`INVOICEDETAILSID` AS `INVOICEDETAILSID`,
+        `workorder`.`WORKORDERNUMBER` AS `WORKORDERNUMBER`,
+        `workorder`.`WORKORDERID` AS `WORKORDERID`,
+        `workorder`.`CATEGORY` AS `CATEGORY`,
+        `categorytype`.`DESCRIPTION` AS `CATEGORYTYPE`,
+        `workorder`.`BOOKINGNUMBER` AS `BOOKINGNUMBER`,
+        `workorder`.`BILLOFLADINGNUMBER` AS `BILLOFLADINGNUMBER`,
+        `workorder`.`DATECOMPLETED` AS `WOCOMPLETIONDATE`,
+        `workorder`.`VENDORNUMBER` AS `VENDORNUMBER`,
+        `workorder`.`VESSEL` AS `VESSEL`,
+        `workorder`.`VOYAGE` AS `VOYAGE`,
+        `invoice`.`EQUIPMENTNUMBERS` AS `EQUIPMENTNUMBERS`,
+        `invoicedetails`.`EQUIPMENTNUMBER` AS `EQUIPMENTNUMBER`,
+        `invoice`.`REJECTIONREASON` AS `REJECTIONREASON`,
+        `equipmentonworkorder`.`EQUIPMENTTYPECODE` AS `EQUIPMENTTYPECODE`,
+        `equipmentonworkorder`.`SHIPMENTNUMBER` AS `SHIPMENTNUMBER`,
+        `stops`.`ORIGINNAME` AS `ORIGIN`,
+        `stops`.`ORIGINCITY` AS `ORIGINCITY`,
+        `stops`.`DESTINATIONNAME` AS `DESTINATION`,
+        `stops`.`DESTINATIONCITY` AS `DESTINATIONCITY`,
+        `chargeableservices`.`NAME` AS `SERVICE`,
+        `charge`.`TRANSACTIONNUMBER` AS `TRANSACTIONNUMBER`,
+        `charge`.`AMOUNT` AS `AMOUNT`,
+        `charge`.`INVOICEABLEDATE` AS `INVOICEABLEDATE`,
+        `charge`.`FSCPERCENT` AS `FSCPERCENT`,
+        `charge`.`FSCAMOUNT` AS `FSCAMOUNT`,
+        (COALESCE(`charge`.`AMOUNT`, 0) + COALESCE(`charge`.`FSCAMOUNT`, 0)) AS `SUBTOTAL`,
+        COALESCE(`invoice`.`TOTALAMOUNT`, 0) AS `TOTALAMOUNT`,
+        `invoice`.`DATEINVOICERECEIVED` AS `DATEINVOICERECEIVED`,
+        `invoice`.`INVOICERECEIVEDAMOUNT` AS `INVOICERECEIVEDAMOUNT`,
+        `invoice`.`INVOICERECEIVEDCURRENCY` AS `INVOICERECEIVEDCURRENCY`,
+        `invoice`.`DATEPAYMENTREQUESTED` AS `DATEPAYMENTREQUESTED`,
+        `invoice`.`PAYMENTREQUESTEDAMOUNT` AS `PAYMENTREQUESTEDAMOUNT`,
+        `invoice`.`PAYMENTREQUESTEDCURRENCY` AS `PAYMENTREQUESTEDCURRENCY`,
+        `invoice`.`DATEPAYMENTISSUED` AS `DATEPAYMENTISSUED`,
+        `invoice`.`PAYMENTISSUEDAMOUNT` AS `PAYMENTISSUEDAMOUNT`,
+        `invoice`.`PAYMENTISSUEDCURRENCY` AS `PAYMENTISSUEDCURRENCY`
+    FROM
+        (((((((((`invoice`
+        JOIN `invoicedetails` ON ((`invoice`.`INVOICEID` = `invoicedetails`.`INVOICEID`)))
+        JOIN `charge` ON ((`invoicedetails`.`CHARGEID` = `charge`.`CHARGEID`)))
+        JOIN `equipmentonworkorder` ON ((`equipmentonworkorder`.`EQUIPMENTONWORKORDERID` = `charge`.`EQUIPMENTWORKORDERID`)))
+        JOIN `workorder` ON ((`equipmentonworkorder`.`WORKORDERID` = `workorder`.`WORKORDERID`)))
+        JOIN `workorderlookup` `stops` ON ((`stops`.`WORKORDERID` = `workorder`.`WORKORDERID`)))
+        JOIN `invoicestatus` ON ((`invoicestatus`.`STATUSID` = `invoice`.`STATUSID`)))
+        JOIN `chargeableservices` ON ((`charge`.`SERVICEID` = `chargeableservices`.`SERVICEID`)))
+        JOIN `category` ON ((`category`.`ID` = `workorder`.`CATEGORYID`)))
+        JOIN `categorytype` ON ((`category`.`TYPE` = `categorytype`.`ID`)))
+
+
+
+
+
+
+
+											
 
 
 
