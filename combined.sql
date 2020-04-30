@@ -958,7 +958,9 @@ add column ORIGINATORCODE varchar(10),
 add column RECEIVERCODE varchar(10),
 add column OFFICECODE varchar(10);
 
-
+alter table managedinvoice
+add column ORIOFFICECODE varchar(10),
+add column ORIPARTYCODE varchar(10);
 
 
 																
