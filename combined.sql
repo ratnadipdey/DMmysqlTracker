@@ -966,7 +966,48 @@ alter table managedgroup
 add column RECPARTYCODE varchar(10),
 add column ORIPARTYCODE varchar(10);
 																
-																
+CREATE OR REPLACE VIEW `vwinvoicedcharges` AS
+    SELECT 
+        `ch`.`CHARGEID` AS `CHARGEID`,
+        `wo`.`WORKORDERID` AS `WORKORDERID`,
+        `wo`.`ORIGINATORCODE` AS `ORIGINATORCODE`,
+        `wo`.`ORIGINATORNAME` AS `ORIGINATORNAME`,
+        `wo`.`RECEIVERNAME` AS `RECEIVERNAME`,
+        `wo`.`RECEIVERCODE` AS `RECEIVERCODE`,
+        `wo`.`WORKORDERNUMBER` AS `WORKORDERNUMBER`,
+        `s`.`DESCRIPTION` AS `STATUS`,
+        `wo`.`BOOKINGNUMBER` AS `BOOKINGNUMBER`,
+        `wo`.`BILLOFLADINGNUMBER` AS `BILLOFLADINGNUMBER`,
+        `wo`.`VESSEL` AS `VESSEL`,
+        `wo`.`VOYAGE` AS `VOYAGE`,
+        `ewo`.`EQUIPMENTNUMBER` AS `EQUIPMENTNUMBER`,
+        `ewo`.`EQUIPMENTTYPECODE` AS `EQSIZE`,
+        `ewo`.`SHIPMENTNUMBER` AS `SHIPMENTNUMBER`,
+        `seq`.`DESCRIPTION` AS `EQUIPMENTSTATUS`,
+        `ch`.`TRANSACTIONNUMBER` AS `TRANSACTIONNUMBER`,
+        `cs`.`NAME` AS `SERVICE`,
+        `ch`.`AMOUNT` AS `AMOUNT`,
+        `ch`.`FSCPERCENT` AS `FSCPERCENT`,
+        `ch`.`FSCAMOUNT` AS `FSCAMOUNT`,
+        (`ch`.`AMOUNT` + COALESCE(`ch`.`FSCAMOUNT`, 0)) AS `SUBTOTAL`,
+        `stop`.`NAME` AS `STOPNAME`,
+        `wo`.`DATECOMPLETED` AS `COMPLETIONDATE`,
+        `wo`.`DATECREATED` AS `DATECREATED`,
+        `ch`.`INVOICEABLEDATE` AS `INVOICEABLEDATE`
+    FROM
+        ((((((`workorder` `wo`
+        JOIN `equipmentonworkorder` `ewo` ON ((`wo`.`WORKORDERID` = `ewo`.`WORKORDERID`)))
+        JOIN `charge` `ch` ON ((`ch`.`EQUIPMENTWORKORDERID` = `ewo`.`EQUIPMENTONWORKORDERID`)))
+        LEFT JOIN `stop` ON ((`stop`.`STOPID` = `ch`.`STOPID`)))
+        JOIN `chargeableservices` `cs` ON ((`cs`.`SERVICEID` = `ch`.`SERVICEID`)))
+        JOIN `status` `s` ON ((`wo`.`STATUSID` = `s`.`STATUSID`)))
+        JOIN `status` `seq` ON ((`ewo`.`STATUSID` = `seq`.`STATUSID`)))
+    WHERE
+        ((`ch`.`ISBILLABLE` = 1)
+            AND (`ch`.`ISINVOICED` = 0)
+            AND (`wo`.`STATUSID` NOT IN (7 , 11))
+            AND (`ch`.`INVOICEABLEDATE` IS NOT NULL))
+    ORDER BY `wo`.`WORKORDERNUMBER`													
 																
 																
 
