@@ -962,7 +962,9 @@ alter table managedinvoice
 add column ORIOFFICECODE varchar(10),
 add column ORIPARTYCODE varchar(10);
 
-
+alter table managedgroup
+add column RECPARTYCODE varchar(10),
+add column ORIPARTYCODE varchar(10);
 																
 																
 																
