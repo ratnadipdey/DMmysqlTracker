@@ -1255,3 +1255,102 @@ ALTER TABLE shipmentevents DROP exceptionreason ;
 
 -- 612
 ALTER TABLE workorderlookup drop haspodattachment; 
+
+ ---613
+
+ ALTER
+    ALGORITHM = UNDEFINED 
+    DEFINER = `dmsiusr`@`%` 
+    SQL SECURITY DEFINER
+VIEW `vwequipmentadvancedfilter` AS
+    SELECT DISTINCT
+        `app`.`APPOINTMENTID` AS `APPOINTMENTID`,
+        `wo`.`WORKORDERID` AS `WORKORDERID`,
+        `ewo`.`EQUIPMENTONWORKORDERID` AS `EQUIPMENTONWORKORDERID`,
+        `wo`.`WORKORDERNUMBER` AS `WORKORDERNUMBER`,
+		`wo`.`ORIGINATORCODE` AS `ORIGINATORCODE`,
+        `wo`.`RECEIVERCODE` AS `RECEIVERCODE`,
+        `wo`.`ORIGINATORNAME` AS `ORIGINATORNAME`,
+        `wo`.`RECEIVERNAME` AS `RECEIVERNAME`,
+        `cat`.`NAME` AS `CATEGORY`,
+        `catt`.`DESCRIPTION` AS `CATEGORYTYPE`,
+        `st`.`DESCRIPTION` AS `STATUS`,
+        `wo`.`workorderdate` AS `WORKORDERDATE`,
+        `wo`.`VESSEL` AS `VESSEL`,
+        `wo`.`VOYAGE` AS `VOYAGE`,
+        `wo`.`EXPORTCUTOFFDATE` AS `CUTTOFFDATE`,
+        `wo`.`PORTOFLOADING` AS `PORTOFLOADING`,
+        `wo`.`PORTOFDISCHARGE` AS `PORTOFDISCHARGE`,
+        `wo`.`LASTFREEDAY` AS `LASTFREEDAY`,
+        `wo`.`RESPONDBYDATE` AS `RESPONDBYDATE`,
+        `wo`.`DATECREATED` AS `DATECREATED`,
+        `wo`.`DATEACCEPTED` AS `DATEACCEPTED`,
+        `wo`.`DATEASSIGNED` AS `DATEASSIGNED`,
+        `wo`.`DATECOMPLETED` AS `DATECOMPLETED`,
+        `wo`.`DATECANCELED` AS `DATECANCELED`,
+        `wo`.`DATEACTIVE` AS `DATEACTIVE`,
+        `wo`.`SHIPMENTREFERENCENUMBER` AS `SHIPMENTREFERENCENUMBER`,
+        `wo`.`ORIGINATORIMPORTREFNUMBER` AS `ORIGINATORIMPORTREFNUMBER`,
+        `ewo`.`EQUIPMENTNUMBER` AS `EQUIPMENTNUMBER`,
+        `ewo`.`EQUIPMENTTYPECODE` AS `EQUIPMENTTYPECODE`,
+        `ewo`.`ASSOCIATEDUNITID` AS `ASSOCIATEDUNITID`,
+        `ewo`.`PIECECOUNT` AS `PIECECOUNT`,
+        `stp`.`STOPNUMBER` AS `STOPNUMBER`,
+        `stp`.`NAME` AS `STOPNAME`,
+        `app`.`SCHEDULEDTIMEFORM` AS `GISCHEDULETIMEFROM`,
+        `app`.`SCHEDULEDTIMESTART` AS `GISCHEDULETIMESTART`,
+        `app`.`SCHEDULEDTIMEEND` AS `GISCHEDULETIMEEND`,
+        `app`.`GATEOUTFORM` AS `GOSCHEDULETIMEFROM`,
+        `app`.`GATEOUTSTART` AS `GOSCHEDULETIMESTART`,
+        `app`.`GATEOUTEND` AS `GOSCHEDULETIMEEND`,
+        `app`.`ACTUALTIME` AS `GIACTUALTIME`,
+        `app`.`GATEOUTACTUAL` AS `GOACTUALTIME`,
+        `wo`.`BILLOFLADINGNUMBER` AS `BILLOFLADING`,
+        `wo`.`BOOKINGNUMBER` AS `BOOKINGNUMBER`,
+        `stp`.`STOPTYPE` AS `STOPTYPE`,
+        `cat`.`ID` AS `CATEGORYID`,
+        `eqv`.`ISINVOICED` AS `ISINVOICED`,
+        `app`.`SCHEDULEDLOCATIONCODE` AS `SCHEDULEDLOCATIONCODE`,
+        `app`.`SCHEDULEDLOCATIONCODEQUALIFIER` AS `SCHEDULEDLOCATIONCODEQUALIFIER`,
+        `app`.`ACTUALLOCATIONCODE` AS `ACTUALLOCATIONCODE`,
+        `app`.`ACTUALLOCATIONCODEQUALIFIER` AS `ACTUALLOCATIONCODEQUALIFIER`,
+        `app`.`GATEINSCHEDULECOMMENTS` AS `GATEINSCHEDULECOMMENTS`,
+        `app`.`GATEINACTUALCOMMENTS` AS `GATEINACTUALCOMMENTS`,
+        `app`.`GATEOUTSCHEDULECOMMENTS` AS `GATEOUTSCHEDULECOMMENTS`,
+        `app`.`GATEOUTACTUALCOMMENTS` AS `GATEOUTACTUALCOMMENTS`,
+        `ewo`.`SHIPMENTNUMBER` AS `SHIPMENTNUMBER`,
+        `ewo`.`SEAL` AS `SEAL`,
+        `ee`.`EVENTEXCEPTIONID` AS `EVENTEXCEPTIONID`,
+        (CASE
+            WHEN (`app`.`exceptionreason` IS NOT NULL) THEN 1
+            ELSE (CASE `ee`.`EXCEPTIONTYPE`
+                WHEN 'OSD' THEN 1
+                ELSE 0
+            END)
+        END) AS `EXCEPTIONFLAG`,
+        `ee`.`PIECECOUNT` AS `REPORTEDPIECECOUNT`,
+        `ee`.`DAMAGE` AS `DAMAGE`,
+        `ee`.`COMMENTS` AS `EVENTEXCEPTIONCOMMENTS`,
+        `app`.`exceptionreason` AS `EXCEPTIONREASON`,
+        NULL AS `COMMENTS`,
+        `wo`.`HOUSEAIRWAYBILLNUMBER` AS `HOUSEAIRWAYBILLNUMBER`,
+        `ewo`.`EMPTYRELEASENUMBER` AS `EMPTYRELEASENUMBER`
+    FROM
+        ((((((((`dmsi`.`workorder` `wo`
+        LEFT JOIN `dmsi`.`equipmentonworkorder` `ewo` ON ((`wo`.`WORKORDERID` = `ewo`.`WORKORDERID`)))
+        LEFT JOIN (SELECT DISTINCT
+            `dmsi`.`charge`.`EQUIPMENTWORKORDERID` AS `EQUIPMENTWORKORDERID`,
+                `dmsi`.`charge`.`ISINVOICED` AS `ISINVOICED`
+        FROM
+            `dmsi`.`charge`
+        WHERE
+            (`dmsi`.`charge`.`ISINVOICED` = 1)) `eqv` ON ((`ewo`.`EQUIPMENTONWORKORDERID` = `eqv`.`EQUIPMENTWORKORDERID`)))
+        LEFT JOIN `dmsi`.`stop` `stp` ON ((`wo`.`WORKORDERID` = `stp`.`WORKORDERID`)))
+        LEFT JOIN `dmsi`.`appointment` `app` ON (((`ewo`.`EQUIPMENTONWORKORDERID` = `app`.`EQUIPMENTONWORKORDERID`)
+            AND (`stp`.`STOPID` = `app`.`STOPID`))))
+        LEFT JOIN `dmsi`.`status` `st` ON (((`wo`.`STATUSID` = `st`.`STATUSID`)
+            AND (`st`.`STATUSID` IN (3 , 5, 6, 9, 10)))))
+        LEFT JOIN `dmsi`.`category` `cat` ON ((`cat`.`ID` = `wo`.`CATEGORYID`)))
+        LEFT JOIN `dmsi`.`categorytype` `catt` ON ((`cat`.`TYPE` = `catt`.`ID`)))
+        LEFT JOIN `dmsi`.`eventexception` `ee` ON ((`app`.`APPOINTMENTID` = `ee`.`APPOINTMENTID`)))
+    ORDER BY `wo`.`WORKORDERNUMBER`;						   
